@@ -3,8 +3,11 @@ import datetime
 import requests
 import pytz
 import yaml
+import os
+import pandas as pd
 from tools.final_answer import FinalAnswerTool
-
+from tools.system_info import SystemInfo
+from dotenv import load_dotenv
 from Gradio_UI import GradioUI
 
 # Below is an example of a tool that does nothing. Amaze us with your creativity !
@@ -17,6 +20,38 @@ def my_custom_tool(arg1:str, arg2:int)-> str: #it's import to specify the return
         arg2: the second argument
     """
     return "What magic will you build ?"
+
+@tool
+def get_user_information()-> str:
+
+    """A tool that displays all users from the API"""
+
+    response = requests.get("https://jsonplaceholder.typicode.com/users")
+
+    users = response.json()
+
+    return users
+@tool
+def validate_if_an_email_is_compromised(arg:str)-> str:
+
+    """A tool that validates if an email has been compromised
+    Args:
+        arg: A string representing an email address.
+    """
+
+    response = requests.get(f"https://leakcheck.io/api/public?check={arg}")
+
+    if response.status_code == 200:
+
+        return response.json()
+
+    elif response.status_code == 404:
+
+        return "This email has not been compromised"
+
+    else:
+
+        return "An error has occurred"
 
 @tool
 def get_current_time_in_timezone(timezone: str) -> str:
@@ -33,11 +68,18 @@ def get_current_time_in_timezone(timezone: str) -> str:
     except Exception as e:
         return f"Error fetching time for timezone '{timezone}': {str(e)}"
 
+load_dotenv()
+
+os.environ["HF_TOKEN"]= os.environ.get("HF_API_KEY")
 
 final_answer = FinalAnswerTool()
 
 # If the agent does not answer, the model is overloaded, please use another model or the following Hugging Face Endpoint that also contains qwen2.5 coder:
 # model_id='https://pflgm2locj2t89co.us-east-1.aws.endpoints.huggingface.cloud' 
+
+web_search_tool = DuckDuckGoSearchTool(max_results=5)
+
+system_info = SystemInfo()
 
 model = HfApiModel(
 max_tokens=2096,
@@ -55,7 +97,8 @@ with open("prompts.yaml", 'r') as stream:
     
 agent = CodeAgent(
     model=model,
-    tools=[final_answer], ## add your tools here (don't remove final answer)
+    tools=[final_answer, image_generation_tool, get_current_time_in_timezone, 
+           get_user_information, validate_if_an_email_is_compromised, web_search_tool, system_info], ## add your tools here (don't remove final answer)
     max_steps=6,
     verbosity_level=1,
     grammar=None,

@@ -1,3 +1,8 @@
+Agent Based on Smolagents from The Hugging Faces. This Agent can run 2 simple task:
+
+- Validate if an email address is compromised based on the user input.
+- Extract data from the OS and present them to the user, based on the user request.
+
 ---
 title: First Agent Template
 emoji: ⚡
